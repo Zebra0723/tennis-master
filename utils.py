@@ -184,3 +184,55 @@ def guarantee_min_items(items: List[Dict[str, str]], min_items: int, broaden_fn)
     more = broaden_fn()
     merged = dedupe_articles(items + more, limit=max(min_items, 15))
     return merged
+    # --------------------------
+# Language + source filtering
+# --------------------------
+
+ENGLISH_HINT_WORDS = {
+    "the","and","of","to","in","for","with","on","from","as","by","at"
+}
+
+ALLOWED_DOMAINS = (
+    "bbc.",
+    "theguardian.",
+    "nytimes.",
+    "espn.",
+    "reuters.",
+    "apnews.",
+    "tennis.com",
+    "atptour.com",
+    "wtatennis.com",
+    "theathletic.",
+)
+
+def looks_english(text: str) -> bool:
+    if not text:
+        return False
+    lower = text.lower()
+    hits = sum(1 for w in ENGLISH_HINT_WORDS if f" {w} " in lower)
+    ascii_ratio = sum(1 for c in text if ord(c) < 128) / max(len(text), 1)
+    return hits >= 2 and ascii_ratio > 0.9
+
+def allowed_source(url: str) -> bool:
+    if not url:
+        return False
+    return any(d in url.lower() for d in ALLOWED_DOMAINS)
+
+# --------------------------
+# Article text extraction
+# --------------------------
+
+def extract_article_summary(url: str, max_paragraphs: int = 2) -> str:
+    html, err = safe_get(url, timeout=20)
+    if err or not html:
+        return ""
+
+    soup = BeautifulSoup(html, "html.parser")
+    paragraphs = [
+        normalize_whitespace(p.get_text())
+        for p in soup.find_all("p")
+        if len(p.get_text(strip=True)) > 80
+    ]
+
+    summary = " ".join(paragraphs[:max_paragraphs])
+    return summary
