@@ -1,4 +1,4 @@
-from utils import gdelt_search, md_link, extract_summary, looks_english, allowed_source
+from utils import gdelt_search, extract_summary, looks_english, allowed_source
 
 def build_improvement_section() -> str:
     lines = []
@@ -13,13 +13,15 @@ def build_improvement_section() -> str:
 
     cleaned = []
     for it in items:
-        title, url = it["title"], it["url"]
+        title = it["title"]
+        url = it["url"]
+
         if not looks_english(title) or not allowed_source(url):
             continue
 
         summary = extract_summary(url)
         if looks_english(summary):
-            cleaned.append({"title": title, "url": url, "summary": summary})
+            cleaned.append({"title": title, "summary": summary})
         if len(cleaned) >= 4:
             break
 
@@ -30,7 +32,7 @@ def build_improvement_section() -> str:
 
     lines.append("### Execution rule\n")
     lines.append(
-        "- Pick **one** idea only.\n"
+        "- Pick **one** idea.\n"
         "- Do **15 minutes** of focused reps.\n"
         "- Stop. Consistency beats volume.\n"
     )
