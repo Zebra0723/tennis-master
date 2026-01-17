@@ -1,7 +1,7 @@
 import os
 import re
 from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Optional
+from typing import List, Dict
 import requests
 from bs4 import BeautifulSoup
 
@@ -26,7 +26,7 @@ LOW_TIER_TERMS = [
     "atp 250", "wta 250", "challenger", "itf", "wta 125", "125"
 ]
 
-# ---------- General helpers ----------
+# ---------- Basic helpers ----------
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="minutes")
@@ -43,6 +43,8 @@ def md_link(title: str, url: str) -> str:
     return f"[{title}]({url})"
 
 def looks_english(text: str) -> bool:
+    if not text:
+        return False
     t = text.lower()
     ascii_ratio = sum(1 for c in t if ord(c) < 128) / max(len(t), 1)
     return ascii_ratio > 0.9 and any(w in t for w in ENGLISH_HINTS)
@@ -54,7 +56,7 @@ def is_low_tier(title: str) -> bool:
     t = title.lower()
     return any(bad in t for bad in LOW_TIER_TERMS)
 
-# ---------- News fetching (GDELT) ----------
+# ---------- News fetch (GDELT) ----------
 
 def gdelt_search(query: str, max_records: int = 20, hours: int = 48) -> List[Dict]:
     endpoint = "https://api.gdeltproject.org/api/v2/doc/doc"
@@ -128,4 +130,4 @@ def extract_entities(titles: List[str]) -> Dict[str, List[str]]:
             if tr in tl and tr.title() not in tournaments:
                 tournaments.append(tr.title())
 
-    return {"players": players, "tournaments": tournaments}
+    return {"players": players, "tournaments": tournaments} 
