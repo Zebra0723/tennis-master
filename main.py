@@ -9,11 +9,9 @@ def build_report() -> str:
     parts.append(f"- Date (UTC): {utc_now_iso_min()}")
     parts.append("- Region: UK")
     parts.append("- Status: Pipeline ran successfully\n")
-
     parts.append(build_stars_section())
     parts.append(build_gear_section())
     parts.append(build_improvement_section())
-
     return "\n".join(parts).strip() + "\n"
 
 def main():
