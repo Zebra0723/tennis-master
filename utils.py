@@ -37,7 +37,7 @@ def google_news_rss_search(query: str, gl: str = "GB", hl: str = "en-GB", ceid: 
     return f"https://news.google.com/rss/search?q={q}&hl={hl}&gl={gl}&ceid={ceid}"
 
 def parse_rss_titles(xml_text: str, limit: int = 10) -> List[Dict[str, str]]:
-    soup = BeautifulSoup(xml_text, "xml")
+    soup = BeautifulSoup(xml_text, "html.parser")
     items = []
     for it in soup.find_all("item")[:limit]:
         title = (it.title.text or "").strip()
