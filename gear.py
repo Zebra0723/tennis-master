@@ -1,40 +1,38 @@
-from typing import List, Dict
-from utils import gdelt_search, md_link, dedupe_articles, guarantee_min_items
-
-GEAR_QUERIES = [
-    '("tennis overgrip" OR "overgrip") AND (best OR review OR recommended)',
-    '("tennis string" OR "poly string") AND (best OR review OR tension)',
-    '("tennis shoes") AND (best OR review OR "new model")',
-    '("tennis bag") AND (best OR review OR "new")',
-    '("tennis dampener" OR "vibration dampener") AND (best OR review)',
-]
+from utils import gdelt_search, md_link, extract_summary, looks_english, allowed_source
 
 def build_gear_section() -> str:
-    lines: List[str] = []
-    lines.append("## 2) Tennis Accessories Radar (best on the market)\n")
-    lines.append("Sources: recent articles/reviews (last 48h). Goal: shortlist what’s worth researching/buying.\n")
+    lines = []
+    lines.append("## 2) Tennis Accessories Radar\n")
 
-    all_items: List[Dict[str, str]] = []
-    for q in GEAR_QUERIES:
-        all_items.extend(gdelt_search(q, max_records=6, hours=72))
+    query = (
+        '(tennis overgrip OR tennis string OR tennis shoes OR tennis bag) '
+        'AND (best OR review)'
+    )
 
-    all_items = dedupe_articles(all_items, limit=15)
+    items = gdelt_search(query, max_records=20, hours=72)
 
-    def broaden():
-        return gdelt_search('tennis (overgrip OR string OR shoes OR bag OR dampener) (review OR best)', max_records=20, hours=168)
+    cleaned = []
+    for it in items:
+        title, url = it["title"], it["url"]
+        if not looks_english(title) or not allowed_source(url):
+            continue
 
-    all_items = guarantee_min_items(all_items, min_items=6, broaden_fn=broaden)
+        summary = extract_summary(url)
+        if looks_english(summary):
+            cleaned.append({"title": title, "url": url, "summary": summary})
+        if len(cleaned) >= 5:
+            break
 
-    lines.append("### Recent “best / review” signals\n")
-    for it in all_items[:10]:
-        lines.append(f"- {md_link(it.get('title',''), it.get('url',''))}")
+    lines.append("### What’s being recommended\n")
+    for c in cleaned:
+        lines.append(f"- **{c['title']}**")
+        lines.append(f"  - {c['summary']}\n")
 
-    lines.append("\n### Analysis (how to use this)\n")
-    lines.append("- Focus on **repeat-buy accessories** first (overgrips, strings). They drive recurring revenue and quick testing cycles.")
-    lines.append("- Treat shoes/bags as **higher-friction** purchases—buy only if multiple reputable sources converge.")
-    lines.append("- Build a shortlist of 2–3 candidates per category and test one variable at a time (e.g., overgrip tackiness vs durability).")
+    lines.append("### How to use this\n")
+    lines.append(
+        "- Prioritise repeat-buy items (overgrips, strings).\n"
+        "- Only consider shoes/bags if **multiple reviews converge**.\n"
+        "- Buy one variable at a time and test for 1–2 weeks.\n"
+    )
 
-    lines.append("\n### Today’s recommendation\n")
-    lines.append("- Pick **one** category to research (e.g., overgrips). Open the top 2 links, extract the exact product names, and compare price/availability in the UK.")
-    lines.append("")
     return "\n".join(lines)
