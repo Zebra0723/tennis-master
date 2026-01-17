@@ -1,34 +1,42 @@
-from utils import safe_get, google_news_rss_search, parse_rss_titles, md_link, polite_sleep
+from typing import List, Dict
+from utils import gdelt_search, md_link, dedupe_articles, guarantee_min_items
 
 TIP_QUERIES = [
-    "tennis serve coaching tip",
-    "tennis return positioning",
-    "tennis footwork drill",
-    "tennis tactics patterns",
-    "tennis mental toughness",
+    'tennis (serve OR "second serve") (tip OR drill OR coaching)',
+    'tennis (return OR "return of serve") (positioning OR tactic OR tip)',
+    'tennis footwork (drill OR coaching OR "movement")',
+    'tennis tactics ("high percentage" OR pattern OR strategy)',
+    'tennis conditioning ("injury prevention" OR mobility OR strength)',
 ]
 
 def build_improvement_section() -> str:
-    lines = []
-    lines.append("## 3) Tennis Improvement Tips\n")
-    items = []
+    lines: List[str] = []
+    lines.append("## 3) Tennis Improvement Tips (practical, actionable)\n")
+    lines.append("Sources: recent coaching/tactics/conditioning articles (last 7 days). Goal: one theme/day.\n")
+
+    items: List[Dict[str, str]] = []
     for q in TIP_QUERIES:
-        xml, err = safe_get(google_news_rss_search(q))
-        if xml and not err:
-            for it in parse_rss_titles(xml, limit=2):
-                items.append((q, it["title"], it["link"]))
-        polite_sleep(0.4)
+        items.extend(gdelt_search(q, max_records=6, hours=168))
 
-    if not items:
-        lines.append("_No tips found today._\n")
-        return "\n".join(lines)
+    items = dedupe_articles(items, limit=15)
 
-    current = None
-    for q, title, link in items[:10]:
-        if q != current:
-            current = q
-            lines.append(f"### {q}")
-        lines.append(f"- {md_link(title, link)}")
+    def broaden():
+        return gdelt_search('tennis (coaching OR drill OR tactic OR footwork OR mobility OR strength)', max_records=25, hours=336)
 
+    items = guarantee_min_items(items, min_items=6, broaden_fn=broaden)
+
+    lines.append("### Recent coaching signals\n")
+    for it in items[:10]:
+        lines.append(f"- {md_link(it.get('title',''), it.get('url',''))}")
+
+    lines.append("\n### Analysis (how to convert tips into progress)\n")
+    lines.append("- Don’t collect tips. Convert them into a **single daily focus**.")
+    lines.append("- Use a tight loop: **Read 2 mins → pick 1 cue → do 15 mins reps → stop**.")
+    lines.append("- Track only one metric: e.g., first-serve % in practice sets, or return depth on 10 consecutive returns.")
+
+    lines.append("\n### Today’s execution template\n")
+    lines.append("- Choose one area: **Serve / Return / Footwork / Tactics / Conditioning**")
+    lines.append("- Write 1 sentence: “Today I will focus on ________.”")
+    lines.append("- Do 15 minutes of reps. End.")
     lines.append("")
     return "\n".join(lines)
