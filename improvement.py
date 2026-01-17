@@ -1,42 +1,38 @@
-from typing import List, Dict
-from utils import gdelt_search, md_link, dedupe_articles, guarantee_min_items
-
-TIP_QUERIES = [
-    'tennis (serve OR "second serve") (tip OR drill OR coaching)',
-    'tennis (return OR "return of serve") (positioning OR tactic OR tip)',
-    'tennis footwork (drill OR coaching OR "movement")',
-    'tennis tactics ("high percentage" OR pattern OR strategy)',
-    'tennis conditioning ("injury prevention" OR mobility OR strength)',
-]
+from utils import gdelt_search, md_link, extract_summary, looks_english, allowed_source
 
 def build_improvement_section() -> str:
-    lines: List[str] = []
-    lines.append("## 3) Tennis Improvement Tips (practical, actionable)\n")
-    lines.append("Sources: recent coaching/tactics/conditioning articles (last 7 days). Goal: one theme/day.\n")
+    lines = []
+    lines.append("## 3) Tennis Improvement Focus\n")
 
-    items: List[Dict[str, str]] = []
-    for q in TIP_QUERIES:
-        items.extend(gdelt_search(q, max_records=6, hours=168))
+    query = (
+        'tennis (serve OR return OR footwork OR tactics OR conditioning) '
+        'AND (coaching OR drill OR tip)'
+    )
 
-    items = dedupe_articles(items, limit=15)
+    items = gdelt_search(query, max_records=20, hours=168)
 
-    def broaden():
-        return gdelt_search('tennis (coaching OR drill OR tactic OR footwork OR mobility OR strength)', max_records=25, hours=336)
+    cleaned = []
+    for it in items:
+        title, url = it["title"], it["url"]
+        if not looks_english(title) or not allowed_source(url):
+            continue
 
-    items = guarantee_min_items(items, min_items=6, broaden_fn=broaden)
+        summary = extract_summary(url)
+        if looks_english(summary):
+            cleaned.append({"title": title, "url": url, "summary": summary})
+        if len(cleaned) >= 4:
+            break
 
-    lines.append("### Recent coaching signals\n")
-    for it in items[:10]:
-        lines.append(f"- {md_link(it.get('title',''), it.get('url',''))}")
+    lines.append("### Today’s learning\n")
+    for c in cleaned:
+        lines.append(f"- **{c['title']}**")
+        lines.append(f"  - {c['summary']}\n")
 
-    lines.append("\n### Analysis (how to convert tips into progress)\n")
-    lines.append("- Don’t collect tips. Convert them into a **single daily focus**.")
-    lines.append("- Use a tight loop: **Read 2 mins → pick 1 cue → do 15 mins reps → stop**.")
-    lines.append("- Track only one metric: e.g., first-serve % in practice sets, or return depth on 10 consecutive returns.")
+    lines.append("### Execution rule\n")
+    lines.append(
+        "- Pick **one** idea only.\n"
+        "- Do **15 minutes** of focused reps.\n"
+        "- Stop. Consistency beats volume.\n"
+    )
 
-    lines.append("\n### Today’s execution template\n")
-    lines.append("- Choose one area: **Serve / Return / Footwork / Tactics / Conditioning**")
-    lines.append("- Write 1 sentence: “Today I will focus on ________.”")
-    lines.append("- Do 15 minutes of reps. End.")
-    lines.append("")
     return "\n".join(lines)
