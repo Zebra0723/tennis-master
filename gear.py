@@ -1,4 +1,4 @@
-from utils import gdelt_search, md_link, extract_summary, looks_english, allowed_source
+from utils import gdelt_search, extract_summary, looks_english, allowed_source
 
 def build_gear_section() -> str:
     lines = []
@@ -13,13 +13,15 @@ def build_gear_section() -> str:
 
     cleaned = []
     for it in items:
-        title, url = it["title"], it["url"]
+        title = it["title"]
+        url = it["url"]
+
         if not looks_english(title) or not allowed_source(url):
             continue
 
         summary = extract_summary(url)
         if looks_english(summary):
-            cleaned.append({"title": title, "url": url, "summary": summary})
+            cleaned.append({"title": title, "summary": summary})
         if len(cleaned) >= 5:
             break
 
@@ -32,7 +34,7 @@ def build_gear_section() -> str:
     lines.append(
         "- Prioritise repeat-buy items (overgrips, strings).\n"
         "- Only consider shoes/bags if **multiple reviews converge**.\n"
-        "- Buy one variable at a time and test for 1–2 weeks.\n"
+        "- Test one variable at a time for 1–2 weeks.\n"
     )
 
     return "\n".join(lines)
